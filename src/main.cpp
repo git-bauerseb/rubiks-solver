@@ -3,7 +3,7 @@
 int main() {
 
     Cube cube;
-    cube.rotateR();
+    cube.rotateBPrime();
     cube.printCube();
 
     return 0;

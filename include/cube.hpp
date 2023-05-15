@@ -51,6 +51,12 @@ class Cube {
         void rotateL();
         void rotateLPrime();
 
+        void rotateF();
+        void rotateFPrime();
+
+        void rotateB();
+        void rotateBPrime();
+
         void rotateD();        // Quarter-rotation (90 deg.) around down face.
         void rotateDPrime();   // Opposite direction as in upper direction (rotateU)
 
