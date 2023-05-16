@@ -3,6 +3,9 @@
 // Edge orientation member functions
 uint16_t Cube::getEdgeParity() {
 
+    int topC = Color::WHITE;
+    int botC = Color::YELLOW;
+
     // Index into bitset
     int idx = 0;
 
@@ -10,35 +13,54 @@ uint16_t Cube::getEdgeParity() {
     uint16_t oBitset = 0;
 
     // Check first edge (UF)
-    int uColor = getPieceColor(UP, 7); int dColor = getPieceColor(FRONT, 1);
-    if ((uColor == Color::WHITE || uColor == Color::YELLOW)
-        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
-        oBitset |= (1 << idx);
-    }
+    int uC = getPieceColor(UP, 7); int dC = getPieceColor(FRONT, 1);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
     idx++;
-
-    // Check second edge (UL)
-    uColor = getPieceColor(UP, 5); dColor = getPieceColor(RIGHT, 1);
-    if ((uColor == Color::WHITE || uColor == Color::YELLOW) 
-        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
-        oBitset |= (1 << idx);
-    }
+    // Check second edge (UR)
+    uC = getPieceColor(UP, 5); dC = getPieceColor(RIGHT, 1);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
     idx++;
-
     // Check third edge (UB)
-    uColor = getPieceColor(UP, 1); dColor = getPieceColor(BACK, 1);
-    if ((uColor == Color::WHITE || uColor == Color::YELLOW) 
-        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
-        oBitset |= (1 << idx);
-    }
+    uC = getPieceColor(UP, 1); dC = getPieceColor(BACK, 1);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+    // Check fourth edge (UL)
+    uC = getPieceColor(UP, 3); dC = getPieceColor(LEFT, 1);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+    // DF
+    uC = getPieceColor(DOWN, 1); dC = getPieceColor(FRONT, 7);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+    // DR
+    uC = getPieceColor(DOWN, 5); dC = getPieceColor(RIGHT, 7);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+    // DB
+    uC = getPieceColor(DOWN, 7); dC = getPieceColor(BACK, 7);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+    // DL
+    uC = getPieceColor(DOWN, 3); dC = getPieceColor(LEFT, 7);
+    if ((uC == topC || uC == botC) || ((uC == Color::BLUE || uC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
     idx++;
 
-    // Check fourth edge (UL)
-    uColor = getPieceColor(UP, 1); dColor = getPieceColor(LEFT, 3);
-    if ((uColor == Color::WHITE || uColor == Color::YELLOW) 
-        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
-        oBitset |= (1 << idx);
-    }
+    // Edges in E-slice
+    // First edge
+    int fC = getPieceColor(FRONT, 5); int bC = getPieceColor(RIGHT, 3);
+    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+
+    fC = getPieceColor(FRONT, 3); bC = getPieceColor(LEFT, 5);
+    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+
+    fC = getPieceColor(BACK, 3); bC = getPieceColor(RIGHT, 5);
+    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    idx++;
+
+        fC = getPieceColor(BACK, 5); bC = getPieceColor(LEFT, 3);
+    if ((fC == topC || bC == botC) || ((fC == Color::BLUE || bC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
     idx++;
 
     return oBitset;
@@ -77,6 +99,7 @@ std::string moveToString(Move move) {
         result += moveToString(moves[i]) + " ";
     }
 
+    if (moves.size() > 0) 
     result += moves[moves.size()-1];
     return result;
 }

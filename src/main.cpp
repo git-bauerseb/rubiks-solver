@@ -1,6 +1,18 @@
 #include "cube.hpp"
+
 #include <iostream>
 #include <bitset>
+#include <vector>
+
+// Moves allowed in group G0
+const std::vector<Move> g0Moves 
+    = {Move::U, Move::D, Move::F, Move::B, Move::L, Move::R};
+
+// Moves allowed in group G1
+const std::vector<Move> g1Moves
+    = {Move::U, Move::D, Move::F2, Move::B2, Move::L, Move::R};
+
+
 
 bool isSolved(Cube& cube) {
     // Check front
@@ -49,8 +61,39 @@ bool solveIDDfs(Cube current, std::vector<Move>& moves, int dLimit) {
     return false;
 }
 
-void thistlethwaite() {
+bool dfsG0(Cube& current, std::vector<Move>& solveMoves, int dRemaining) {
+    if (current.getEdgeParity() == ((1 << 12) - 1)) {
+        return true;
+    } else if (dRemaining <= 0) {return false;
+    } else {
+        for (auto& m : g0Moves) {
+            Cube nCube = current;
+            nCube.applyMove(m);
+            solveMoves.push_back(m);
+            if (dfsG0(nCube, solveMoves, dRemaining-1)) {
+                return true;
+            }
+            solveMoves.pop_back();
+        }
 
+        return false;
+    }
+}
+
+bool g0(Cube& cube, std::vector<Move>& moves, int dLimit) {
+    for (int i = 0; i <= dLimit; ++i) {
+        if (dfsG0(cube, moves, i)) {return true;}
+        moves.clear();
+    }
+    return false;
+}
+
+void thistlethwaite(Cube& cube) {
+    // Going from G0 to G1
+    printf("G0 --> G1\n");
+    std::vector<Move> moves;
+    g0(cube, moves, 7);
+    printf("%s\n", movesToString(moves).c_str());
 }
 
 int main() {
@@ -58,21 +101,12 @@ int main() {
     Cube cube;
 
     // First, scramble cube
-    std::vector<Move> scramble{Move::F, Move::F};
+    std::vector<Move> scramble{
+        Move::F, Move::D, Move::L2, Move::D_PRIME,
+        Move::U, Move::R_PRIME};
+
     cube.applyMoves(scramble);
-
-    std::bitset<16> edges(cube.getEdgeParity());
-
-    std::cout << edges << "\n";
-
-    /*
-    std::vector<Move> moves;
-    bool solved = solveIDDfs(cube, moves, 8);
-
-    if (solved) {
-        printf("Solved CUBE\n%s\n", movesToString(moves).c_str());
-    }
-    */
+    thistlethwaite(cube);
 
     return 0;
 }
