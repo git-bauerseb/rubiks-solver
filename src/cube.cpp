@@ -1,5 +1,171 @@
 #include "cube.hpp"
 
+bool Cube::isSolved() {
+    for (int i = 0; i < 6; ++i) {
+        for (int p = 0; p < 9; ++p) {
+            if (!(getPieceColor(i, p) == i)) return false;
+        }
+    }
+
+    return true;
+}
+
+bool Cube::allOpposite() {
+    // Check front face
+    for (int i = 0; i < 9; ++i) {
+        int color = getPieceColor(FRONT, i);
+        if (color != Color::GREEN && color != Color::BLUE) return false;
+    }
+
+    // Check back face
+    for (int i = 0; i < 9; ++i) {
+        int color = getPieceColor(BACK, i);
+        if (color != Color::GREEN && color != Color::BLUE) return false;
+    }
+
+    // Check left face
+    for (int i = 0; i < 9; ++i) {
+        int color = getPieceColor(LEFT, i);
+        if (color != Color::ORANGE && color != Color::RED) return false;
+    }
+
+    // Check right face
+    for (int i = 0; i < 9; ++i) {
+        int color = getPieceColor(RIGHT, i);
+        if (color != Color::ORANGE && color != Color::RED) return false;
+    }
+
+    return true;
+}
+
+__uint128_t Cube::getCornerEncoding() {
+
+    __uint128_t encoded = 0;
+    
+    // First corner
+    encoded = encoded | (0x7 & getPieceColor(UP, 8))
+             | ((0x7 & getPieceColor(RIGHT, 0)) << 3)
+             | ((0x7 & getPieceColor(FRONT, 2)) << 6);
+
+    // Second corner
+    encoded = encoded | ((0x7 & getPieceColor(UP, 2)) << 9)
+             | ((0x7 & getPieceColor(BACK, 0)) << 12)
+             | ((0x7 & getPieceColor(RIGHT, 2)) << 15);
+
+    // Third corner
+    encoded = encoded | ((0x7 & getPieceColor(UP, 0)) << 18)
+             | ((0x7 & getPieceColor(BACK, 2)) << 21)
+             | ((0x7 & getPieceColor(LEFT, 0)) << 24);
+
+    // Fourth corner
+    encoded = encoded | ((0x7 & getPieceColor(UP, 6)) << 27)
+             | ((0x7 & getPieceColor(LEFT, 2)) << 30)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(FRONT, 0)) << 33);
+
+    // Fifth corner
+    encoded = encoded | (static_cast<__uint128_t>(0x7 & getPieceColor(DOWN, 2)) << 36)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(FRONT, 8)) << 39)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(RIGHT, 6)) << 42);
+
+    // Sixth corner
+    encoded = encoded | (static_cast<__uint128_t>(0x7 & getPieceColor(DOWN, 8)) << 45)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(BACK, 6)) << 48)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(RIGHT, 8)) << 51);
+
+    // Seventh corner
+    encoded = encoded | (static_cast<__uint128_t>(0x7 & getPieceColor(DOWN, 6)) << 54)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(BACK, 8)) << 57)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(LEFT, 6)) << 60);
+
+    // Eight corner
+    encoded = encoded | (static_cast<__uint128_t>(0x7 & getPieceColor(FRONT, 6)) << 63)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(DOWN, 0)) << 66)
+             | (static_cast<__uint128_t>(0x7 & getPieceColor(LEFT, 8)) << 69);
+    return encoded;
+}
+
+// Check if edge with color c1/c2 belongs to E-slice
+static bool isEEdge(int c1, int c2) {
+    return (c1 == Color::BLUE || c1 == Color::RED || c1 == Color::GREEN || c1 == Color::ORANGE)
+        && (c2 == Color::BLUE || c2 == Color::RED || c2 == Color::GREEN || c2 == Color::ORANGE);
+}
+
+int Cube::eSliceEdges() {
+    int cnt = 0;
+
+    // Check first edge
+    int c1 = getPieceColor(FRONT, 5);
+    int c2 = getPieceColor(RIGHT, 3);
+    cnt += isEEdge(c1, c2);
+
+
+    // Check second edge
+    c1 = getPieceColor(RIGHT, 5);
+    c2 = getPieceColor(BACK, 3);
+    cnt += isEEdge(c1, c2);
+
+
+    // Check third edge
+    c1 = getPieceColor(BACK, 5);
+    c2 = getPieceColor(LEFT, 3);
+    cnt += isEEdge(c1, c2);
+
+    // Check first edge
+    c1 = getPieceColor(LEFT, 5);
+    c2 = getPieceColor(FRONT, 3);
+    cnt += isEEdge(c1, c2);
+
+    return cnt;
+}
+
+uint8_t Cube::getCornerParity() {
+    int idx = 0;
+    uint8_t oBitset = 0;
+
+    // First corner
+    int uColor = getPieceColor(UP, 8);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    // Second corner
+    uColor = getPieceColor(UP, 2);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    // Third corner
+    uColor = getPieceColor(UP, 0);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    // Fourth corner
+    uColor = getPieceColor(UP, 6);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    // Fifth
+    uColor = getPieceColor(DOWN, 2);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    // Sixth
+    uColor = getPieceColor(DOWN, 8);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+
+    // Seventh
+    uColor = getPieceColor(DOWN, 6);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    // Eigth
+    uColor = getPieceColor(DOWN, 0);
+    if (uColor == Color::WHITE || uColor == Color::YELLOW) {oBitset |= (1 << idx);}
+    idx++;
+
+    return oBitset;
+}
+
 // Edge orientation member functions
 uint16_t Cube::getEdgeParity() {
 

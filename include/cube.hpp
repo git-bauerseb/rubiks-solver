@@ -2,6 +2,8 @@
 #define RC_SOLVER_CUBE_H
 
 #include <utility>
+
+#include <bitset>
 #include <vector>
 #include <string>
 
@@ -96,9 +98,25 @@ class Cube {
         bool haveColor(Color color, int idx1, int idx2, int idx3, int idx4);
         bool haveColor(Color color, int idx1, int idx2);
 
+        // Checks whether the cube is in solved state, i.e. all pieces on each face have same color as the middle piece
+        bool isSolved();
+
+        // Check for each face whether it only contains color from the face or opposite face
+        bool allOpposite();
+
         // Returns the edge parity (good/bad) edges of the cube.
         // The edges are indexed from 0-11 and need 1-bit encoding (0 = bad edge, 1 = good edge)
         uint16_t getEdgeParity();
+
+        // Returns the corner parity (good/bad) of the cube.
+        // The corners are indexed from 0-7 and need 1-bit encoding as in edge parity
+        uint8_t getCornerParity();
+
+        // Encoding of corners
+        __uint128_t getCornerEncoding();
+
+        // Count the number of edges that are currently in the E-slice and belong there
+        int eSliceEdges();
 
 
         void applyMoves(const std::vector<Move>& moves);
