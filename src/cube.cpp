@@ -1,5 +1,87 @@
 #include "cube.hpp"
 
+// Edge orientation member functions
+uint16_t Cube::getEdgeParity() {
+
+    // Index into bitset
+    int idx = 0;
+
+    // Bitset used for storing information about orientation
+    uint16_t oBitset = 0;
+
+    // Check first edge (UF)
+    int uColor = getPieceColor(UP, 7); int dColor = getPieceColor(FRONT, 1);
+    if ((uColor == Color::WHITE || uColor == Color::YELLOW)
+        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
+        oBitset |= (1 << idx);
+    }
+    idx++;
+
+    // Check second edge (UL)
+    uColor = getPieceColor(UP, 5); dColor = getPieceColor(RIGHT, 1);
+    if ((uColor == Color::WHITE || uColor == Color::YELLOW) 
+        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
+        oBitset |= (1 << idx);
+    }
+    idx++;
+
+    // Check third edge (UB)
+    uColor = getPieceColor(UP, 1); dColor = getPieceColor(BACK, 1);
+    if ((uColor == Color::WHITE || uColor == Color::YELLOW) 
+        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
+        oBitset |= (1 << idx);
+    }
+    idx++;
+
+    // Check fourth edge (UL)
+    uColor = getPieceColor(UP, 1); dColor = getPieceColor(LEFT, 3);
+    if ((uColor == Color::WHITE || uColor == Color::YELLOW) 
+        || ((uColor == Color::BLUE || uColor == Color::GREEN) && !(dColor == Color::WHITE || dColor == Color::YELLOW))) {
+        oBitset |= (1 << idx);
+    }
+    idx++;
+
+    return oBitset;
+}
+
+
+std::string moveToString(Move move) {
+    switch (move) {
+        case U: return "U";
+        case U_PRIME: return "U'";
+        case U2: return "U2";
+        case D: return "D";
+        case D_PRIME: return "D'";
+        case D2: return "D2";
+        case R: return "R";
+        case R_PRIME: return "R'";
+        case R2: return "R2";
+        case L: return "L";
+        case L_PRIME: return "L'";
+        case L2: return "L2";
+        case F: return "F";
+        case F_PRIME: return "F'";
+        case F2: return "F2";
+        case B: return "B";
+        case B_PRIME: return "B'";
+        case B2: return "B2";
+        case M: return "M";
+        case M_PRIME: return "M'";        
+    }
+    return "";
+}
+
+ std::string movesToString(const std::vector<Move>& moves) {
+    std::string result = "";
+    for (int i = 0; i < moves.size(); ++i) {
+        result += moveToString(moves[i]) + " ";
+    }
+
+    result += moves[moves.size()-1];
+    return result;
+}
+
+
 Cube::Cube() {
     memset(m_faces, 0, sizeof(m_faces));
 
@@ -8,6 +90,59 @@ Cube::Cube() {
             setPieceColor(f, i, f);
         }
     }
+}
+
+
+void Cube::applyMove(Move move) {
+    switch (move) {
+        case U: rotateU(); break;
+        case U2: rotateU(); rotateU(); break;
+        case U_PRIME: rotateUPrime(); break;
+        case D: rotateD(); break;
+        case D2: rotateD(); rotateD(); break;
+        case D_PRIME: rotateDPrime(); break;
+        case R: rotateR(); break;
+        case R2: rotateR(); rotateR(); break;
+        case R_PRIME: rotateRPrime(); break;
+        case L: rotateL(); break;
+        case L2: rotateL(); rotateL(); break;
+        case L_PRIME: rotateLPrime(); break;
+        case F: rotateF(); break;
+        case F2: rotateF(); rotateF(); break;
+        case F_PRIME: rotateFPrime(); break;
+        case B: rotateB(); break;
+        case B2: rotateB(); rotateB(); break;
+        case B_PRIME: rotateBPrime(); break;
+        case M: rotateLPrime(); rotateR(); break;
+        case M_PRIME: rotateL(); rotateRPrime(); break;
+        default: break;
+    }
+}
+
+
+void Cube::applyMoves(const std::vector<Move>& moves) {
+    for (auto& move : moves) {
+        applyMove(move);
+    }
+}
+
+
+bool Cube::haveColor(Color color, int idx1, int idx2, int idx3, int idx4) {
+    return getPieceColor(idx1 / 9, idx1 % 9)
+        == getPieceColor(idx2 / 9, idx2 % 9)
+        && getPieceColor(idx2 / 9, idx2 % 9)
+        == getPieceColor(idx3 / 9, idx3 % 9)
+        && getPieceColor(idx3 / 9, idx3 % 9)
+        == getPieceColor(idx4 / 9, idx4 % 9)
+        && getPieceColor(idx2 / 9, idx2 % 9) == color;
+}
+
+
+bool Cube::haveColor(Color color, int idx1, int idx2) {
+    return getPieceColor(idx1 / 9, idx1 % 9)
+        == getPieceColor(idx2 / 9, idx2 % 9)
+        && getPieceColor(idx2 / 9, idx2 % 9)
+        == color;
 }
 
 void Cube::printCube() {
@@ -85,11 +220,11 @@ void Cube::rotateR() {
     for (int i = 0; i < 3; ++i) {
         int f2 = getPieceColor(FRONT, 2 + i*3);
         int u2 = getPieceColor(UP, 2 + i*3);
-        int b6 = getPieceColor(BACK, i*3);
+        int b6 = getPieceColor(BACK, 6-i*3);
         int d2 = getPieceColor(DOWN, 2 + i*3);
         setPieceColor(FRONT, 2 + i*3, d2);
         setPieceColor(UP, 2 + i*3, f2);
-        setPieceColor(BACK, i*3, u2);
+        setPieceColor(BACK, 6-i*3, u2);
         setPieceColor(DOWN, 2 + i*3, b6);
     }
 
@@ -201,8 +336,8 @@ void Cube::rotateD() {
     }
 
     // Bottom
-    permute(UP, 0,2,8,6);
-    permute(UP, 1,5,7,3);
+    permute(DOWN, 0,2,8,6);
+    permute(DOWN, 1,5,7,3);
 }
 
 void Cube::rotateDPrime() {

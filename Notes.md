@@ -16,3 +16,8 @@ Algorithm:
 ## A star
 
 - introduce heuristic into regular graph-searching algorithm
+
+
+# Rubiks Cube
+
+## Edge Orientation

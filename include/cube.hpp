@@ -1,13 +1,43 @@
 #ifndef RC_SOLVER_CUBE_H
 #define RC_SOLVER_CUBE_H
 
+#include <utility>
 #include <vector>
+#include <string>
+
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
 
 // Number of bits used for color encoding in cube representation.
 static const int COLOR_BIT_WIDTH = 3;
+
+// Enumeration of all possibly allowed moves
+enum Move : uint8_t {
+    U,
+    U_PRIME,
+    U2,
+    D,
+    D2,
+    D_PRIME,
+    R,
+    R2,
+    R_PRIME,
+    L,
+    L2,
+    L_PRIME,
+    F,
+    F2,
+    F_PRIME,
+    B,
+    B2,
+    B_PRIME,
+    M,
+    M_PRIME
+};
+
+std::string moveToString(Move move);
+std::string movesToString(const std::vector<Move>& moves);
 
 enum Face : uint8_t {
     UP      = 0,
@@ -59,6 +89,20 @@ class Cube {
 
         void rotateD();        // Quarter-rotation (90 deg.) around down face.
         void rotateDPrime();   // Opposite direction as in upper direction (rotateU)
+
+        // Checks if pieces have the same color (in absolute addressing).
+        // Absolute addressing: Per face index 0...8 and then address of face.
+        // So 6th piece of right side would have address: RIGHT * 9 + 5 = 9 + 5 = 14
+        bool haveColor(Color color, int idx1, int idx2, int idx3, int idx4);
+        bool haveColor(Color color, int idx1, int idx2);
+
+        // Returns the edge parity (good/bad) edges of the cube.
+        // The edges are indexed from 0-11 and need 1-bit encoding (0 = bad edge, 1 = good edge)
+        uint16_t getEdgeParity();
+
+
+        void applyMoves(const std::vector<Move>& moves);
+        void applyMove(Move move);
 
 
         // I/O routines
