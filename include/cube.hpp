@@ -73,7 +73,6 @@ class Cube {
         Cube();
 
         // Rotations
-
         void rotateU();         // Quarter-rotation (90 deg.) around upper face
         void rotateUPrime();    // Quarter-rotation (90 deg.) in opposite (counter-clockwise) direction
         
