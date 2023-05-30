@@ -348,7 +348,7 @@ void Solver::halfTurnID(Cube& cube, int rDepth) {
 void Solver::generateHalfTurnTable() {
     if (!std::filesystem::exists("../resources/half.tab")) {
         Cube cube;
-        for (int i = 0; i <= 6; ++i) {
+        for (int i = 0; i <= 5; ++i) {
             halfTurnID(cube, i);
         }
 
@@ -408,6 +408,9 @@ void Solver::init() {
 
     generateG3Table(G3_PRUNING_DEPTH);
     readG3Table();
+
+    generateG4Table(G4_PRUNING_DEPTH);
+    readG4Table();
 }
 
 template<typename S, typename E, typename Lookup>
@@ -426,7 +429,7 @@ bool Solver::dfs(Cube& cube, std::vector<Move>& path,
         lowerBound = pruningDepth + 1;
     }
 
-    if (lowerBound > remDepth || remDepth <= 0) {return false;}
+    if (lowerBound > remDepth || remDepth < 0) {return false;}
     else if (isSolved(cube)) {return true;}
     else {
         for (const Move& m : moves) {
@@ -460,8 +463,10 @@ void Solver::iddfs(Cube& cube, std::vector<Move>& path, const S& isSolved,
 }
 
 void Solver::solve(Cube& cube) {
+    std::vector<Move> wholeSequence;
     std::vector<Move> moves;
 
+    
     printf("G0 (Random) => G1\n");
     const auto g1IsSolved = [&](const Cube& cube) {
         return cube.getEdgeParity() == ((1 << 12) - 1);
@@ -476,9 +481,10 @@ void Solver::solve(Cube& cube) {
     );
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
+    wholeSequence.insert(wholeSequence.end(), moves.begin(), moves.end());
     moves.clear();
 
-    /*
+    
     printf("G1 => G2\n");
     const auto g2IsSolved = [&](const Cube& cube) {
         return ((cube.getCornerParity() << 8) | (cube.eSliceEdges()))
@@ -494,6 +500,7 @@ void Solver::solve(Cube& cube) {
     );
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
+    wholeSequence.insert(wholeSequence.end(), moves.begin(), moves.end());
     moves.clear();
 
     
@@ -509,8 +516,8 @@ void Solver::solve(Cube& cube) {
         m_G3Table, G3_PRUNING_DEPTH);
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
+    wholeSequence.insert(wholeSequence.end(), moves.begin(), moves.end());
     moves.clear();
-
     
     printf("G3 => G4 (Solved)\n");
     const auto g4IsSolved = [&](const Cube& cube) {return cube.isSolved();};
@@ -521,7 +528,9 @@ void Solver::solve(Cube& cube) {
         m_G4Table, G4_PRUNING_DEPTH);
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
+    wholeSequence.insert(wholeSequence.end(), moves.begin(), moves.end());
     moves.clear();
-    */
+    
+    printf("Total sequence (Length: %d): %s\n", wholeSequence.size(), movesToString(wholeSequence).c_str());
 }
 

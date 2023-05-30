@@ -277,19 +277,19 @@ uint16_t Cube::getEdgeParity() const {
     // Edges in E-slice
     // First edge
     int fC = getPieceColor(FRONT, 5); int bC = getPieceColor(RIGHT, 3);
-    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(bC == topC || bC == botC))) {oBitset |= (1 << idx);}
     idx++;
 
     fC = getPieceColor(FRONT, 3); bC = getPieceColor(LEFT, 5);
-    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(bC == topC || bC == botC))) {oBitset |= (1 << idx);}
     idx++;
 
     fC = getPieceColor(BACK, 3); bC = getPieceColor(RIGHT, 5);
-    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    if ((fC == topC || fC == botC) || ((fC == Color::BLUE || fC == Color::GREEN) && !(bC == topC || bC == botC))) {oBitset |= (1 << idx);}
     idx++;
 
-        fC = getPieceColor(BACK, 5); bC = getPieceColor(LEFT, 3);
-    if ((fC == topC || bC == botC) || ((fC == Color::BLUE || bC == Color::GREEN) && !(dC == topC || dC == botC))) {oBitset |= (1 << idx);}
+    fC = getPieceColor(BACK, 5); bC = getPieceColor(LEFT, 3);
+    if ((fC == topC || bC == botC) || ((fC == Color::BLUE || bC == Color::GREEN) && !(bC == topC || bC == botC))) {oBitset |= (1 << idx);}
     idx++;
 
     return oBitset;

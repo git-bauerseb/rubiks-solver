@@ -55,9 +55,9 @@ class Solver {
     private:
 
         const int G1_PRUNING_DEPTH = 6;
-        const int G2_PRUNING_DEPTH = 8;
-        const int G3_PRUNING_DEPTH = 8;
-        const int G4_PRUNING_DEPTH = 8;
+        const int G2_PRUNING_DEPTH = 7;
+        const int G3_PRUNING_DEPTH = 5;
+        const int G4_PRUNING_DEPTH = 6;
 
 
         // Applies a depth first search
@@ -116,10 +116,11 @@ class Solver {
         std::map<CubeRepresentation, int,
             CubeRepresentationCompare> m_G4Table;   // Pruning table for group G4
 
-
+    public:
         std::set<__uint128_t> m_HalfPossible;   // Stores corner configuration of all
                                                 // cubes that can be solved by half turns
 
+    private:
         const std::vector<Move> m_G1Moves = {
             Move::U, Move::U_PRIME, Move::U2,
             Move::D, Move::D_PRIME, Move::D2,
@@ -144,11 +145,11 @@ class Solver {
         };
 
         const std::vector<Move> m_G4Moves = {
-            Move::U2, Move::D2, Move::L2, Move::R2, Move::F2, Move::B2
+            Move::U2, Move::D2, Move::F2, Move::B2, Move::L2, Move::R2
         };
 
         const std::vector<Move> m_HalfTurns = {
-            Move::U2, Move::D2, Move::L2, Move::R2, Move::F2, Move::B2
+            Move::U2, Move::D2, Move::F2, Move::B2, Move::L2, Move::R2
         };
 
 
