@@ -1,6 +1,69 @@
 #include "cube.hpp"
 
-bool Cube::isSolved() {
+#include <iostream>
+
+CubeRepresentation Cube::getTotalRepresentation() const {
+    
+    CubeRepresentation repr;
+
+    // Face U/R in repr.m_repr[0]
+    // Face F/D in repr.m_repr[1]
+    // Face L/B in repr.m_repr[2]
+
+    int offset = 0;
+
+    for (int i = 0; i < 6; ++i) {
+        if (!(i % 2)) {repr.m_representation[i/2] = 0; offset = 0;}
+        for (int j = 0; j < 9; ++j) {
+            repr.m_representation[i / 2] |= (static_cast<uint64_t>(getPieceColor(i, j)) << offset);
+            offset += 3;
+        }
+    }
+
+    return repr;
+}
+
+void Cube::applyMoves(const std::string& representation) {
+    const int n = representation.size();
+
+    for (int i = 0; i < n; ) {
+        char current = representation[i];
+        if (current != ' ') {
+            applyMove(representation, i);
+            while (i < n && representation[i] != ' ') {i++;}
+        } else {
+            i++;
+        }
+    }
+}
+
+void Cube::applyMove(const std::string& representation, int offset) {
+    const int n = representation.size();
+
+    char base = representation[offset];
+
+    int move = Move::R;
+
+    switch (base) {
+        case 'R': move = Move::R; break;
+        case 'L': move = Move::L; break;
+        case 'U': move = Move::U; break;
+        case 'D': move = Move::D; break;
+        case 'F': move = Move::F; break;
+        case 'B': move = Move::B; break;
+    }
+
+    // Check if there is a second character that encodes a move
+    if (offset < n-1 && representation[offset+1] == '\'') {
+        move++;
+    } else if (offset < n-1 && representation[offset+1] == '2') {
+        move += 2;
+    }
+
+    applyMove(static_cast<Move>(move));
+}
+
+bool Cube::isSolved() const {
     for (int i = 0; i < 6; ++i) {
         for (int p = 0; p < 9; ++p) {
             if (!(getPieceColor(i, p) == i)) return false;
@@ -10,7 +73,7 @@ bool Cube::isSolved() {
     return true;
 }
 
-bool Cube::allOpposite() {
+bool Cube::allOpposite() const {
     // Check front face
     for (int i = 0; i < 9; ++i) {
         int color = getPieceColor(FRONT, i);
@@ -38,7 +101,7 @@ bool Cube::allOpposite() {
     return true;
 }
 
-__uint128_t Cube::getCornerEncoding() {
+__uint128_t Cube::getCornerEncoding() const {
 
     __uint128_t encoded = 0;
     
@@ -90,7 +153,7 @@ static bool isEEdge(int c1, int c2) {
         && (c2 == Color::BLUE || c2 == Color::RED || c2 == Color::GREEN || c2 == Color::ORANGE);
 }
 
-int Cube::eSliceEdges() {
+int Cube::eSliceEdges() const {
     int cnt = 0;
 
     // Check first edge
@@ -118,7 +181,7 @@ int Cube::eSliceEdges() {
     return cnt;
 }
 
-uint8_t Cube::getCornerParity() {
+uint8_t Cube::getCornerParity() const {
     int idx = 0;
     uint8_t oBitset = 0;
 
@@ -167,7 +230,7 @@ uint8_t Cube::getCornerParity() {
 }
 
 // Edge orientation member functions
-uint16_t Cube::getEdgeParity() {
+uint16_t Cube::getEdgeParity() const {
 
     int topC = Color::WHITE;
     int botC = Color::YELLOW;

@@ -243,6 +243,91 @@ void Solver::generateG3Table(int depth) {
 }
 
 
+// G4
+void Solver::g4TableToFile() {
+    // Create table file
+    std::ofstream tFile;
+    tFile.open("../resources/table4.pru",
+        std::ios_base::out 
+        | std::ios_base::binary);
+
+    // Write map
+
+    // First, write map size
+    write<std::size_t>(tFile, m_G4Table.size());
+
+    // Write key/value pairs
+    for (std::map<CubeRepresentation, int, CubeRepresentationCompare>::iterator it = m_G4Table.begin();
+            it != m_G4Table.end(); ++it) {
+        
+        write<uint64_t>(tFile, it->first.m_representation[0]);
+        write<uint64_t>(tFile, it->first.m_representation[1]);
+        write<uint64_t>(tFile, it->first.m_representation[2]);
+        int value = it->second;
+        write<int>(tFile, value);
+    }
+
+    tFile.close();
+}
+
+void Solver::readG4Table() {
+    if (!std::filesystem::exists("../resources/table4.pru")) {
+        std::cout << "Error! Pruning table not available\n";
+    } else {
+        std::ifstream tFile;
+        tFile.open("../resources/table4.pru",
+        std::ios_base::in 
+        | std::ios_base::binary);
+
+        std::size_t size = read<std::size_t>(tFile);
+        std::cout << "G4 table has size: " << size << "\n";
+
+        for (int i = 0; i < size; ++i) {
+            CubeRepresentation repr;
+            repr.m_representation[0] = read<uint64_t>(tFile);
+            repr.m_representation[1] = read<uint64_t>(tFile);
+            repr.m_representation[2] = read<uint64_t>(tFile);
+            int value = read<int>(tFile);
+            m_G4Table.insert({repr, value});
+        }
+    }
+}
+
+void Solver::idG4(Cube& cube, int cDepth, int rDepth) {
+    if (rDepth < 0) {return;}
+    CubeRepresentation encoding = cube.getTotalRepresentation();
+
+    if (m_G4Table.count(encoding) == 0) {
+        m_G4Table.insert({encoding, cDepth});
+    }
+
+    for (auto& m : m_G4Moves) {
+        Cube newC = cube;
+        newC.applyMove(m);
+
+        if (rDepth-1 >= 0)
+        idG4(newC, cDepth+1, rDepth-1);
+    }
+}
+
+void Solver::generateG4Table(int depth) {
+    std::cout << "Generating pruning tables for G4\n";
+
+    if (!std::filesystem::exists("../resources/table4.pru")) {
+        Cube cube;
+        for (int i = 0; i <= depth; ++i) {
+            idG4(cube,0,i);
+            std::cout << "Depth: " << i << " Map size: " << m_G4Table.size() << "\n";
+        }
+        std::cout << "Done! Size: " << m_G4Table.size() << "\n";
+        std::cout << "Write table to ../resources/table4.pru\n";
+        g4TableToFile();
+    } else {
+        std::cout << "Pruning table for G4 already exists\n";
+    }
+}
+
+
 // PUBLIC METHODS
 
 void Solver::halfTurnID(Cube& cube, int rDepth) {
@@ -308,220 +393,135 @@ void Solver::readHalfTurnTable() {
 }
 
 void Solver::init() {
-    generateG1Table(7);
+    
+    generateG1Table(G1_PRUNING_DEPTH);
     readG1Table();
 
-    generateG2Table(7);
+    generateG2Table(G2_PRUNING_DEPTH);
     readG2Table();
 
     // Generate a table that stores corner information about which
     // configurations of a cube can be generated with half turns
+    // Needed in going from G2 to G3
     generateHalfTurnTable();
     readHalfTurnTable();
 
-    generateG3Table(7);
+    generateG3Table(G3_PRUNING_DEPTH);
     readG3Table();
 }
 
-// SOLVE METHODS
-bool Solver::dfsG0(Cube& current, std::vector<Move>& solveMoves, int dRemaining) {
-    uint16_t parity = current.getEdgeParity();
-    
+template<typename S, typename E, typename Lookup>
+bool Solver::dfs(Cube& cube, std::vector<Move>& path,
+                 const S& isSolved, const std::vector<Move>& moves,
+                 const E& getEncoding, int remDepth,
+                 Lookup& lookup, int pruningDepth) const {
+
+    auto encoding = getEncoding(cube);
+
     int lowerBound;
 
-    if (m_G1Table.count(parity)) {
-        lowerBound = m_G1Table[parity];
+    if (lookup.count(encoding)) {
+        lowerBound = lookup[encoding];
     } else {
-        // If not in there, lower bound is G1 pruning depth + 1
-        lowerBound = 8;
+        lowerBound = pruningDepth + 1;
     }
 
-    if (lowerBound > dRemaining) {return false;}
-    else if (parity == ((1 << 12) - 1)) {
-        return true;
-    } else if (dRemaining <= 0) {
-        return false;
-    } else {
-        for (auto& m : m_G1Moves) {
-            Cube nCube = current;
-            nCube.applyMove(m);
-            solveMoves.push_back(m);
-            if (dfsG0(nCube, solveMoves, dRemaining-1)) {
+    if (lowerBound > remDepth || remDepth <= 0) {return false;}
+    else if (isSolved(cube)) {return true;}
+    else {
+        for (const Move& m : moves) {
+            Cube newCube = cube;
+            newCube.applyMove(m);
+
+            path.push_back(m);
+            if (dfs(newCube, path, isSolved, moves,
+                    getEncoding, remDepth-1, lookup, pruningDepth)) {
                 return true;
             }
-            solveMoves.pop_back();
+            path.pop_back();
         }
 
         return false;
     }
 }
 
-
-void Solver::g0Phase(Cube& cube, std::vector<Move>& moves, int dLimit) {
-    for (int i = 0; i <= dLimit; ++i) {
-        if (dfsG0(cube, moves, i)) {break;}
+template<typename S, typename E, typename Lookup>
+void Solver::iddfs(Cube& cube, std::vector<Move>& path, const S& isSolved,
+            const std::vector<Move>& moves, const E& getEncoding,
+            int depthLimit, Lookup& lookup, int pruningDepth) const {
+    for (int i = 0; i <= depthLimit; ++i) {
         printf("Searching depth: %d\n", i);
-        moves.clear();
-    }
-}
-
-
-// G1 -> G2
-bool Solver::dfsG1(Cube& current, std::vector<Move>& solveMoves, int dRemaining) {
-    uint16_t parity = (current.getCornerParity() << 8) | (current.eSliceEdges());
-
-    int lowerBound;
-
-    if (m_G2Table.count(parity)) {
-        lowerBound = m_G2Table[parity];
-    } else {
-        // If not in there, lower bound is G2 pruning depth + 1
-        lowerBound = 8;
-    }
-
-    if (lowerBound > dRemaining) {return false;}
-    else if (parity == 0xFF04) {
-        return true;
-    } else if (dRemaining <= 0) {
-        return false;
-    } else {
-        for (auto& m : m_G2Moves) {
-            Cube nCube = current;
-            nCube.applyMove(m);
-            solveMoves.push_back(m);
-            if (dfsG1(nCube, solveMoves, dRemaining-1)) {
-                return true;
-            }
-            solveMoves.pop_back();
+        if (dfs(cube, path, isSolved, moves, getEncoding, i, lookup, pruningDepth)) {
+            break;
         }
 
-        return false;
+        path.clear();
     }
 }
-
-void Solver::g1Phase(Cube& cube, std::vector<Move>& moves, int dLimit) {
-    for (int i = 0; i <= dLimit; ++i) {
-        if (dfsG1(cube, moves, i)) {break;}
-        printf("Searching depth: %d\n", i);
-        moves.clear();
-    }
-}
-
-// G2 -> G3
-bool Solver::dfsG2(Cube& current, std::vector<Move>& solveMoves, int dRemaining) {
-    __uint128_t parity = current.getCornerEncoding();
-    int lowerBound;
-
-    if (m_G3Table.count(parity)) {
-        lowerBound = m_G3Table[parity];
-    } else {
-        // If not in there, lower bound is G2 pruning depth + 1
-        lowerBound = 8;
-    }
-
-    bool poss = m_HalfPossible.count(parity) > 0;
-
-    if (lowerBound > dRemaining) {return false;}
-    else if (poss && current.allOpposite()) {
-        return true;
-    } else if (dRemaining <= 0) {
-        return false;
-    } else {
-        for (auto& m : m_G3Moves) {
-            Cube nCube = current;
-            nCube.applyMove(m);
-            solveMoves.push_back(m);
-            if (dfsG2(nCube, solveMoves, dRemaining-1)) {
-                return true;
-            }
-            solveMoves.pop_back();
-        }
-
-        return false;
-    }
-}
-
-void Solver::g2Phase(Cube& cube, std::vector<Move>& moves, int dLimit) {
-    for (int i = 0; i <= dLimit; ++i) {
-        if (dfsG2(cube, moves, i)) {break;}
-        printf("Searching depth: %d\n", i);
-        moves.clear();
-    }
-}
-
-
-bool Solver::dfsG3(Cube& current, std::vector<Move>& solveMoves, int dRemaining) {
-    __uint128_t parity = current.getCornerEncoding();
-    int lowerBound;
-
-    if (m_G3Table.count(parity)) {
-        lowerBound = m_G3Table[parity];
-    } else {
-        // If not in there, lower bound is G2 pruning depth + 1
-        lowerBound = 8;
-    }
-    
-    if (current.isSolved()) {
-        return true;
-    } else if (dRemaining <= 0) {
-        return false;
-    } else {
-        for (auto& m : m_G4Moves) {
-            Cube nCube = current;
-            nCube.applyMove(m);
-            solveMoves.push_back(m);
-            if (dfsG3(nCube, solveMoves, dRemaining-1)) {
-                return true;
-            }
-            solveMoves.pop_back();
-        }
-
-        return false;
-    }
-}
-
-void Solver::g3Phase(Cube& cube, std::vector<Move>& moves, int dLimit) {
-    for (int i = 0; i <= dLimit; ++i) {
-        if (dfsG3(cube, moves, i)) {break;}
-        printf("Searching depth: %d\n", i);
-        moves.clear();
-    }
-}
-
 
 void Solver::solve(Cube& cube) {
     std::vector<Move> moves;
 
-    
-    // Going from G0 to G1
-    printf("G0 --> G1\n");
-    g0Phase(cube, moves, 10);
+    printf("G0 (Random) => G1\n");
+    const auto g1IsSolved = [&](const Cube& cube) {
+        return cube.getEdgeParity() == ((1 << 12) - 1);
+    };
+    const auto g1Encoding = [&](const Cube& cube) {
+        return cube.getEdgeParity();
+    };
+    iddfs<decltype(g1IsSolved), decltype(g1Encoding), decltype(m_G1Table)>(
+        cube, moves, g1IsSolved,
+        m_G1Moves, g1Encoding, 10,
+        m_G1Table, G1_PRUNING_DEPTH
+    );
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
     moves.clear();
-    
+
+    /*
+    printf("G1 => G2\n");
+    const auto g2IsSolved = [&](const Cube& cube) {
+        return ((cube.getCornerParity() << 8) | (cube.eSliceEdges()))
+            == 0xFF04;
+    };
+    const auto g2Encoding = [&](const Cube& cube) {
+        return ((cube.getCornerParity() << 8) | (cube.eSliceEdges()));
+    };
+    iddfs<decltype(g2IsSolved), decltype(g2Encoding), decltype(m_G2Table)>(
+        cube, moves, g2IsSolved,
+        m_G2Moves, g2Encoding, 10,
+        m_G2Table, G2_PRUNING_DEPTH
+    );
+    printf("Found moves: %s\n", movesToString(moves).c_str());
+    cube.applyMoves(moves);
+    moves.clear();
 
     
-    
-    printf("G1 --> G2\n");
-    g1Phase(cube, moves, 10);
+    printf("G2 => G3\n");
+    const auto g3IsSolved = [&](const Cube& cube) {
+        return m_HalfPossible.count(cube.getCornerEncoding()) > 0
+            && cube.allOpposite();
+    };
+    const auto g3Encoding = [&](const Cube& cube) {return cube.getCornerEncoding();};
+    iddfs<decltype(g3IsSolved), decltype(g3Encoding), decltype(m_G3Table)>(
+        cube, moves, g3IsSolved,
+        m_G3Moves, g3Encoding, 13,
+        m_G3Table, G3_PRUNING_DEPTH);
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
     moves.clear();
-    
 
     
-    printf("G2 --> G3\n");
-    g2Phase(cube, moves, 13);
+    printf("G3 => G4 (Solved)\n");
+    const auto g4IsSolved = [&](const Cube& cube) {return cube.isSolved();};
+    const auto g4Encoding = [&](const Cube& cube) {return cube.getTotalRepresentation();};
+    iddfs<decltype(g4IsSolved), decltype(g4Encoding), decltype(m_G4Table)>(
+        cube, moves, g4IsSolved,
+        m_G4Moves, g4Encoding, 14,
+        m_G4Table, G4_PRUNING_DEPTH);
     printf("Found moves: %s\n", movesToString(moves).c_str());
     cube.applyMoves(moves);
     moves.clear();
-    
-
-    printf("G3 --> Solved\n");
-    g3Phase(cube, moves, 14);
-    printf("Found moves: %s\n", movesToString(moves).c_str());
-    cube.applyMoves(moves);
-    moves.clear();
+    */
 }
 

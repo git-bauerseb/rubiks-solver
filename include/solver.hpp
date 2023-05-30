@@ -22,7 +22,6 @@ class Solver {
         // Initialize solver (i.e. load prunint tables for search)
         void init();
 
-
         // G1
 
         // Generate search-tree pruning table for transition from G0-G1
@@ -46,6 +45,8 @@ class Solver {
         void readG3Table();
 
         // Use G3 table for G4
+        void generateG4Table(int depth);
+        void readG4Table();
 
 
         void solve(Cube& cube);
@@ -53,17 +54,37 @@ class Solver {
 
     private:
 
-        void g0Phase(Cube& cube, std::vector<Move>& moves, int dLimit);
-        bool dfsG0(Cube& current, std::vector<Move>& solveMoves, int dRemaining);
+        const int G1_PRUNING_DEPTH = 6;
+        const int G2_PRUNING_DEPTH = 8;
+        const int G3_PRUNING_DEPTH = 8;
+        const int G4_PRUNING_DEPTH = 8;
 
-        void g1Phase(Cube& cube, std::vector<Move>& moves, int dLimit);
-        bool dfsG1(Cube& current, std::vector<Move>& solveMoves, int dRemaining);
 
-        void g2Phase(Cube& cube, std::vector<Move>& moves, int dLimit);
-        bool dfsG2(Cube& current, std::vector<Move>& solveMoves, int dRemaining);
+        // Applies a depth first search
+        // Arguments
+        //  S - lambda function which returns true if the provided cube is solved according
+        //      to current state
+        //  M - lambda function returning the allowable moves
+        template<typename S, typename E, typename Lookup>
+        bool dfs(Cube& cube,
+                 std::vector<Move>& path,
+                 const S& isSolved,
+                 const std::vector<Move>& moves,
+                 const E& getEncoding,
+                 int rDepth,
+                 Lookup& lookup,
+                 int pruningDepth) const;
 
-        void g3Phase(Cube& cube, std::vector<Move>& moves, int dLimit);
-        bool dfsG3(Cube& current, std::vector<Move>& solveMoves, int dRemaining);
+
+        template<typename S, typename E, typename Lookup>
+        void iddfs(Cube& cube,
+                   std::vector<Move>& path,
+                   const S& isSolved,
+                   const std::vector<Move>& moves,
+                   const E& getEncoding,
+                   int depthLimit,
+                   Lookup& lookup,
+                   int pruningDepth) const;
 
 
 
@@ -89,11 +110,11 @@ class Solver {
         void g4TableToFile();
         
 
-        std::map<uint16_t, int> m_G1Table;      // Pruning table for group G1
-        std::map<uint16_t, int> m_G2Table;      // Pruning table for group G2
-        std::map<__uint128_t, int> m_G3Table;   // Pruning table for group G3
-        std::map<__uint128_t, int> m_G4Table;   // Pruning table for group G4
-
+        std::map<uint16_t, int> m_G1Table;          // Pruning table for group G1
+        std::map<uint16_t, int> m_G2Table;          // Pruning table for group G2
+        std::map<__uint128_t, int> m_G3Table;       // Pruning table for group G3
+        std::map<CubeRepresentation, int,
+            CubeRepresentationCompare> m_G4Table;   // Pruning table for group G4
 
 
         std::set<__uint128_t> m_HalfPossible;   // Stores corner configuration of all
